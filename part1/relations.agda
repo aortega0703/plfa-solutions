@@ -2,9 +2,10 @@ module plfa-solutions.part1.relations where
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong; sym)
-open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
 open import Data.Nat.Properties using (+-comm; +-identityʳ; *-comm)
--- open Data.Nat.Properties.≤-reasoning using (begin_)
+open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
+open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_;_^_)
+open import plfa-solutions.part1.induction using (Bin; ⟨⟩; _O; _I; inc)
 
 data _≤_ : ℕ → ℕ → Set where
 
@@ -146,3 +147,47 @@ if-<-then-≤ (suc m) (suc n) (s<s m<n) = s≤s (if-<-then-≤ m n m<n)
     (≤-trans
       (if-<-then-≤ m (suc n) m<n)
       (if-<-then-≤ n (suc (suc p)) (<-suc n (suc p) n<p)))
+
+data even : ℕ → Set
+data odd  : ℕ → Set
+
+data even where
+  zero : even zero
+
+  suc  : ∀ {n : ℕ} → odd n → even (suc n)
+
+data odd where
+  suc  : ∀ {n : ℕ} → even n → odd (suc n)
+
+e+e≡e : ∀ {m n : ℕ} → even m → even n → even (m + n)
+
+o+e≡o : ∀ {m n : ℕ} → odd m → even n → odd (m + n)
+
+e+e≡e zero     en  =  en
+e+e≡e (suc om) en  =  suc (o+e≡o om en)
+
+o+e≡o (suc em) en  =  suc (e+e≡e em en)
+
+o+o≡e : ∀ {m n : ℕ} → odd m → odd n → even (m + n)
+o+o≡e (suc zero) on = suc on
+o+o≡e (suc (suc om)) on = suc (suc (o+o≡e om on))
+
+data Leading1 : Bin → Set where
+  one      : Leading1 (⟨⟩ I) 
+  _O : ∀ {b : Bin} → Leading1 b → Leading1 (b O) 
+  _I : ∀ {b : Bin} → Leading1 b → Leading1 (b I)
+
+data Canonical : Bin → Set where
+  zero    : Canonical (⟨⟩ O)
+  leading : ∀ {b : Bin} → Leading1 b → Canonical b
+
+inc-Leading1 : ∀ {b : Bin} → Leading1 b → Leading1 (inc b)
+inc-Leading1 one = one O
+inc-Leading1 (lb O) = lb I 
+inc-Leading1 (lb I) = inc-Leading1 lb O
+
+inc-Canonical : ∀ {b : Bin} → Canonical b → Canonical (inc b)
+inc-Canonical zero = leading one
+inc-Canonical (leading one) = leading (one O)
+inc-Canonical (leading (x O)) = leading (x I)
+inc-Canonical (leading (x I)) = leading (inc-Leading1 (x I))
