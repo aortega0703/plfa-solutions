@@ -1,4 +1,4 @@
-module agda-tutorial.part1.induction where
+module plfa-solutions.part1.induction where
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong; sym)

@@ -1,5 +1,5 @@
 {-# OPTIONS --exact-split #-}
-module agda-tutorial.part1.peano where 
+module plfa-solutions.part1.peano where 
 
 data ℕ : Set where
     zero : ℕ
