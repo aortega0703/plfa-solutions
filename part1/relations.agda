@@ -5,7 +5,8 @@ open Eq using (_≡_; refl; cong; sym)
 open import Data.Nat.Properties using (+-comm; +-identityʳ; *-comm)
 open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_;_^_)
-open import plfa-solutions.part1.induction using (Bin; ⟨⟩; _O; _I; inc)
+open import plfa-solutions.part1.induction using (Bin; ⟨⟩; _O; _I; inc;
+  toℕ; toBin; double; BinSuc)
 
 data _≤_ : ℕ → ℕ → Set where
 
@@ -173,9 +174,9 @@ o+o≡e (suc zero) on = suc on
 o+o≡e (suc (suc om)) on = suc (suc (o+o≡e om on))
 
 data Leading1 : Bin → Set where
-  one      : Leading1 (⟨⟩ I) 
-  _O : ∀ {b : Bin} → Leading1 b → Leading1 (b O) 
-  _I : ∀ {b : Bin} → Leading1 b → Leading1 (b I)
+  one : Leading1 (⟨⟩ I) 
+  _O  : ∀ {b : Bin} → Leading1 b → Leading1 (b O) 
+  _I  : ∀ {b : Bin} → Leading1 b → Leading1 (b I)
 
 data Canonical : Bin → Set where
   zero    : Canonical (⟨⟩ O)
@@ -183,11 +184,83 @@ data Canonical : Bin → Set where
 
 inc-Leading1 : ∀ {b : Bin} → Leading1 b → Leading1 (inc b)
 inc-Leading1 one = one O
-inc-Leading1 (lb O) = lb I 
-inc-Leading1 (lb I) = inc-Leading1 lb O
+inc-Leading1 (l O) = l I 
+inc-Leading1 (l I) = inc-Leading1 l O
 
 inc-Canonical : ∀ {b : Bin} → Canonical b → Canonical (inc b)
 inc-Canonical zero = leading one
 inc-Canonical (leading one) = leading (one O)
 inc-Canonical (leading (x O)) = leading (x I)
 inc-Canonical (leading (x I)) = leading (inc-Leading1 (x I))
+
+toBin-Canonical : ∀ (n : ℕ) → Canonical (toBin n)
+toBin-Canonical zero = zero
+toBin-Canonical (suc n) = inc-Canonical (toBin-Canonical n)
+
+data ends-in-O : Bin → Set where
+  null : ends-in-O ⟨⟩
+  ends-O : ∀ (b : Bin) → ends-in-O (b O)
+
+data ends-in-I : Bin → Set where
+  ends-I : ∀ (b : Bin) → ends-in-I (b I)
+
+inc-O : ∀ (b : Bin) → ends-in-O b → ends-in-I (inc b)
+inc-O ⟨⟩ null = ends-I ⟨⟩
+inc-O (b O) (ends-O b) = ends-I b
+
+inc-I : ∀ (b : Bin) → ends-in-I b → ends-in-O (inc b)
+inc-I (b I) (ends-I b) = ends-O (inc b)
+
+even-O : ∀ (n : ℕ) → even n → ends-in-O (toBin n)
+odd-I : ∀ (n : ℕ) → odd n → ends-in-I (toBin n)
+
+even-O zero _ = ends-O ⟨⟩
+even-O (suc n) (suc on) = inc-I (toBin n) (odd-I n on)
+
+odd-I (suc n) (suc en) = inc-O (toBin n) (even-O n en)
+
+unsuc : ℕ → ℕ
+unsuc zero = zero
+unsuc (suc n) = n
+
+prev : Bin → Bin
+prev b = toBin (unsuc (toℕ b)) 
+
+inc-prev : ∀ (b : Bin) → Canonical b → prev (inc b) ≡ b
+prev-inc : ∀ (b : Bin) → Leading1 b → inc (prev b) ≡ b
+
+2*n-toBin : ∀ (n : ℕ) → ends-in-O (toBin (2 * n))
+data Σ (A : Set) (B : A → Set) : Set where
+  ⟨_,_⟩ : (x : A) → B x → Σ A B
+Σ-syntax = Σ
+infix 2 Σ-syntax
+syntax Σ-syntax A (λ x → B) = Σ[ x ∈ A ] B
+∃ : ∀ {A : Set} (B : A → Set) → Set
+∃ {A} B = Σ A B
+
+∃-syntax = ∃
+syntax ∃-syntax (λ x → B) = ∃[ x ] B
+
+
+canonical→ℕ→canonical : ∀ {b : Bin} → Canonical b → toBin (toℕ b) ≡ b
+canonical→ℕ→canonical zero = refl
+canonical→ℕ→canonical (leading one) = refl
+canonical→ℕ→canonical {b O} (leading (cb O))
+  with toℕ (b O)
+... | zero  = {!!}
+... | suc n = {!!}
+canonical→ℕ→canonical {b I} (leading (cb I)) =
+  begin
+    toBin (toℕ (b I))
+  ≡⟨⟩
+    toBin (toℕ (inc (b O)))
+  ≡⟨ cong toBin (BinSuc (b O)) ⟩
+    toBin (suc (toℕ (b O)))
+  ≡⟨⟩
+    inc (toBin (toℕ (b O)))
+  ≡⟨ cong inc (canonical→ℕ→canonical {b O} (leading (cb O))) ⟩
+    inc (b O)
+  ≡⟨⟩
+    b I
+  ∎
+  
