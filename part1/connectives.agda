@@ -192,3 +192,110 @@ infixr 1 _⊎_
     to∘from (inj₂ (inj₁ x)) = refl
     to∘from (inj₂ (inj₂ x)) = refl
 
+data ⊥ : Set where
+
+⊥-elim : ∀ {A : Set}
+  → ⊥
+    --
+  → A
+⊥-elim ()
+
+⊥-idˡ : ∀ {A : Set} → ⊥ ⊎ A ≃ A
+⊥-idˡ =
+  record
+    { to = to
+    ; from = λ A → inj₂ A
+    ; from∘to = from∘to
+    ; to∘from = λ y → refl
+    }
+  where
+    to : ∀ {A : Set} → ⊥ ⊎ A → A
+    to (inj₂ A) = A
+
+    from∘to : ∀ {A : Set} (x : ⊥ ⊎ A) → inj₂ (to x) ≡ x
+    from∘to (inj₂ x) = refl
+
+⊥-idʳ : ∀ {A : Set} → A ⊎ ⊥ ≃ A
+⊥-idʳ =
+  record
+    { to = to
+    ; from = λ A → inj₁ A
+    ; from∘to = from∘to
+    ; to∘from = λ y → refl
+    }
+  where
+    to : ∀ {A : Set} → A ⊎ ⊥ → A
+    to (inj₁ A) = A
+
+    from∘to : ∀ {A : Set} (x : A ⊎ ⊥) → inj₁ (to x) ≡ x
+    from∘to (inj₁ x) = refl
+
+η-→ : ∀ {A B : Set} (f : A → B) → (λ (x : A) → f x) ≡ f
+η-→ f = refl
+
+currying : ∀ {A B C : Set} → (A → B → C) ≃ (A × B → C)
+currying =
+  record
+    { to      =  λ{ f → λ{ ⟨ x , y ⟩ → f x y }}
+    ; from    =  λ{ g → λ{ x → λ{ y → g ⟨ x , y ⟩ }}}
+    ; from∘to =  λ{ f → refl }
+    ; to∘from =  λ{ g → extensionality λ{ ⟨ x , y ⟩ → refl }}
+    }
+
+→-distrib-⊎ : ∀ {A B C : Set} → (A ⊎ B → C) ≃ ((A → C) × (B → C))
+→-distrib-⊎ =
+  record
+    { to      = λ{ f → ⟨ f ∘ inj₁ , f ∘ inj₂ ⟩ }
+    ; from    = λ{ ⟨ g , h ⟩ → λ{ (inj₁ x) → g x ; (inj₂ y) → h y } }
+    ; from∘to = λ{ f → extensionality λ{ (inj₁ x) → refl ; (inj₂ y) → refl } }
+    ; to∘from = λ{ ⟨ g , h ⟩ → refl }
+    }
+
+→-distrib-× : ∀ {A B C : Set} → (A → B × C) ≃ (A → B) × (A → C)
+→-distrib-× =
+  record
+    { to      = λ{ f → ⟨ proj₁ ∘ f , proj₂ ∘ f ⟩ }
+    ; from    = λ{ ⟨ g , h ⟩ → λ x → ⟨ g x , h x ⟩ }
+    ; from∘to = λ{ f → extensionality λ{ x → η-× (f x) } }
+    ; to∘from = λ{ ⟨ g , h ⟩ → refl }
+    }
+
+×-distrib-⊎ : ∀ {A B C : Set} → (A ⊎ B) × C ≃ (A × C) ⊎ (B × C)
+×-distrib-⊎ =
+  record
+    { to      = λ{ ⟨ inj₁ x , z ⟩ → (inj₁ ⟨ x , z ⟩)
+                 ; ⟨ inj₂ y , z ⟩ → (inj₂ ⟨ y , z ⟩)
+                 }
+    ; from    = λ{ (inj₁ ⟨ x , z ⟩) → ⟨ inj₁ x , z ⟩
+                 ; (inj₂ ⟨ y , z ⟩) → ⟨ inj₂ y , z ⟩
+                 }
+    ; from∘to = λ{ ⟨ inj₁ x , z ⟩ → refl
+                 ; ⟨ inj₂ y , z ⟩ → refl
+                 }
+    ; to∘from = λ{ (inj₁ ⟨ x , z ⟩) → refl
+                 ; (inj₂ ⟨ y , z ⟩) → refl
+                 }
+    }
+
+⊎-distrib-× : ∀ {A B C : Set} → (A × B) ⊎ C ≲ (A ⊎ C) × (B ⊎ C)
+⊎-distrib-× =
+  record
+    { to      = λ{ (inj₁ ⟨ x , y ⟩) → ⟨ inj₁ x , inj₁ y ⟩
+                 ; (inj₂ z)         → ⟨ inj₂ z , inj₂ z ⟩
+                 }
+    ; from    = λ{ ⟨ inj₁ x , inj₁ y ⟩ → (inj₁ ⟨ x , y ⟩)
+                 ; ⟨ inj₁ x , inj₂ z ⟩ → (inj₂ z)
+                 ; ⟨ inj₂ z , _      ⟩ → (inj₂ z)
+                 }
+    ; from∘to = λ{ (inj₁ ⟨ x , y ⟩) → refl
+                 ; (inj₂ z)         → refl
+                 }
+    }
+
+⊎-weak-× : ∀ {A B C : Set} → (A ⊎ B) × C → A ⊎ (B × C)
+⊎-weak-× ⟨ inj₁ A , C ⟩ = inj₁ A
+⊎-weak-× ⟨ inj₂ B , C ⟩ = inj₂ ⟨ B , C ⟩
+
+⊎×-⇒-×⊎ : ∀ {A B C D : Set} → (A × B) ⊎ (C × D) → (A ⊎ C) × (B ⊎ D)
+⊎×-⇒-×⊎ (inj₁ ⟨ A , B ⟩) = ⟨ (inj₁ A) , (inj₁ B) ⟩
+⊎×-⇒-×⊎ (inj₂ ⟨ C , D ⟩) = ⟨ (inj₂ C) , inj₂ D ⟩
