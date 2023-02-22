@@ -28,3 +28,9 @@ open import Function using (_∘_)
          (∀ (x : A) → B x) × (∀ (x : A) → C x) →
          (∀ (x : A) → B x × C x)
     from ⟨ a→[Ba] , a→[Ca] ⟩ = λ a → ⟨ a→[Ba] a , a→[Ca] a ⟩
+
+⊎∀-implies-∀⊎ : ∀ {A : Set} {B C : A → Set} →
+    (∀ (x : A) → B x) ⊎ (∀ (x : A) → C x) → ∀ (x : A) → B x ⊎ C x
+⊎∀-implies-∀⊎ (inj₁ a→Ba) = λ a → inj₁ (a→Ba a)
+⊎∀-implies-∀⊎ (inj₂ a→Ca) = λ a → inj₂ (a→Ca a)
+
