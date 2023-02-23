@@ -87,51 +87,33 @@ trans′ {A} {x} {y} {z} x≡y y≡z =
     z
   ∎
 
+data _≤_ : ℕ → ℕ → Set where
+  z≤s : ∀ {n : ℕ} → zero ≤ n
 
-module ≤-Reasoning {A : Set} where
-  data _≤_ : ℕ → ℕ → Set where
-    z≤s : ∀ {n : ℕ} → zero ≤ n
+  s≤s : ∀ {m n : ℕ} → m ≤ n → suc m ≤ suc n
+infix 4 _≤_
+postulate
+  ≤-refl  : ∀ {n : ℕ} → n ≤ n
+  ≤-trans : ∀ {m n p : ℕ} → m ≤ n → n ≤ p → m ≤ p
 
-    s≤s : ∀ {m n : ℕ} → m ≤ n → suc m ≤ suc n
-  infix 4 _≤_
-
-  postulate
-    ≤-refl  : ∀ {n : ℕ} → n ≤ n
-    ≤-trans : ∀ {m n p : ℕ} → m ≤ n → n ≤ p → m ≤ p
-  
+module ≤-Reasoning where
   infix  1 ≤-begin_
   infixr 2 _≤⟨⟩_ _≤⟨_⟩_
   infix  3 _≤-∎
-
-  ≤-begin_ : ∀ {x y : ℕ}
-    → x ≤ y
-      -----
-    → x ≤ y
+  ≤-begin_ : ∀ {x y : ℕ} → x ≤ y → x ≤ y
   ≤-begin x≤y  =  x≤y
 
-  _≤⟨⟩_ : ∀ (x : ℕ) {y : ℕ}
-    → x ≤ y
-      -----
-    → x ≤ y
+  _≤⟨⟩_ : ∀ (x : ℕ) {y : ℕ} → x ≤ y → x ≤ y
   x ≤⟨⟩ x≤y  =  x≤y
 
-  _≤⟨_⟩_ : ∀ (x : ℕ) {y z : ℕ}
-    → x ≤ y
-    → y ≤ z
-      -----
-    → x ≤ z
+  _≤⟨_⟩_ : ∀ (x : ℕ) {y z : ℕ} → x ≤ y → y ≤ z → x ≤ z
   x ≤⟨ x≤y ⟩ y≤z  =  ≤-trans x≤y y≤z
 
-  _≤-∎ : ∀ (x : ℕ)
-      -----
-    → x ≤ x
+  _≤-∎ : ∀ (x : ℕ) → x ≤ x
   x ≤-∎  = ≤-refl
 
 open ≤-Reasoning
-+-monoʳ-≤ : ∀ (n p q : ℕ)
-  → p ≤ q
-    -------------
-  → n + p ≤ n + q
++-monoʳ-≤ : ∀ (n p q : ℕ) → (p ≤ q) → ((n + p) ≤ (n + q))
 +-monoʳ-≤ zero p q p≤q =
   ≤-begin
     zero + p
@@ -163,14 +145,14 @@ data odd where
       -----------
     → odd (suc n)
 
-{-# BUILTIN EQUALITY _≡_ #-}
+--{-# BUILTIN EQUALITY _≡_ #-}
 
-postulate
-  +-comm : ∀ (m n : ℕ) → m + n ≡ n + m
+-- postulate
+--   +-comm : ∀ (m n : ℕ) → m + n ≡ n + m
 
-even-comm : ∀ (m n : ℕ)
-  → even (m + n)
-    ------------
-  → even (n + m)
-even-comm m n emn rewrite +-comm m n = emn
+-- even-comm : ∀ (m n : ℕ)
+--   → even (m + n)
+--     ------------
+--   → even (n + m)
+-- even-comm m n emn rewrite +-comm m n = emn
 
