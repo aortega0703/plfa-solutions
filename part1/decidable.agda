@@ -77,3 +77,26 @@ suc m <? suc n
   with m <? n
 ... | yes m<n = yes (s<s m<n)
 ... | no ¬m<n = no (¬s<s ¬m<n)
+
+------------------------------------------------------------
+
+¬z≡s : ∀ {n : ℕ} → ¬ (zero ≡ suc n)
+¬z≡s ()
+
+¬s≡z : ∀ {n : ℕ} → ¬ (suc n ≡ zero)
+¬s≡z ()
+
+s≡s : ∀ {m n : ℕ} → m ≡ n → suc m ≡ suc n
+s≡s refl = refl
+
+¬s≡s : ∀ {m n : ℕ} → ¬ (m ≡ n) → ¬ (suc m ≡ suc n)
+¬s≡s ¬[m≡n] refl = ¬[m≡n] refl
+
+_≡ℕ?_ : ∀ (m n : ℕ) → Dec (m ≡ n)
+zero ≡ℕ? zero = yes refl
+zero ≡ℕ? suc n = no ¬z≡s
+suc m ≡ℕ? zero = no ¬s≡z
+suc m ≡ℕ? suc n
+  with m ≡ℕ? n
+... | yes m≡n = yes (s≡s m≡n)
+... | no ¬m≡n = no (¬s≡s ¬m≡n)
