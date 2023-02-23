@@ -2,11 +2,13 @@ module plfa-solutions.part1.relations where
 
 import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong; sym)
-open import Data.Nat.Properties using (+-comm; +-identityʳ; *-comm)
+open import Data.Nat.Properties using (+-comm; +-identityʳ; +-identityˡ; *-comm; +-assoc)
 open Eq.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_;_^_)
 open import plfa-solutions.part1.induction using (Bin; ⟨⟩; _O; _I; inc;
-  toℕ; toBin; double; BinSuc)
+  toℕ; toBin; double; BinSuc; *+distribₗ)
+--open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
+
 
 data _≤_ : ℕ → ℕ → Set where
 
@@ -197,59 +199,238 @@ toBin-Canonical : ∀ (n : ℕ) → Canonical (toBin n)
 toBin-Canonical zero = zero
 toBin-Canonical (suc n) = inc-Canonical (toBin-Canonical n)
 
-data ends-in-O : Bin → Set where
-  null : ends-in-O ⟨⟩
-  ends-O : ∀ (b : Bin) → ends-in-O (b O)
-
-data ends-in-I : Bin → Set where
-  ends-I : ∀ (b : Bin) → ends-in-I (b I)
-
-inc-O : ∀ (b : Bin) → ends-in-O b → ends-in-I (inc b)
-inc-O ⟨⟩ null = ends-I ⟨⟩
-inc-O (b O) (ends-O b) = ends-I b
-
-inc-I : ∀ (b : Bin) → ends-in-I b → ends-in-O (inc b)
-inc-I (b I) (ends-I b) = ends-O (inc b)
-
-even-O : ∀ (n : ℕ) → even n → ends-in-O (toBin n)
-odd-I : ∀ (n : ℕ) → odd n → ends-in-I (toBin n)
-
-even-O zero _ = ends-O ⟨⟩
-even-O (suc n) (suc on) = inc-I (toBin n) (odd-I n on)
-
-odd-I (suc n) (suc en) = inc-O (toBin n) (even-O n en)
-
 unsuc : ℕ → ℕ
 unsuc zero = zero
 unsuc (suc n) = n
 
 prev : Bin → Bin
-prev b = toBin (unsuc (toℕ b)) 
+prev ⟨⟩ = ⟨⟩
+prev (⟨⟩ O) = ⟨⟩ O
+prev (b O) = prev b I
+prev (b I) = b O
 
-inc-prev : ∀ (b : Bin) → Canonical b → prev (inc b) ≡ b
-prev-inc : ∀ (b : Bin) → Leading1 b → inc (prev b) ≡ b
-
-2*n-toBin : ∀ (n : ℕ) → ends-in-O (toBin (2 * n))
-data Σ (A : Set) (B : A → Set) : Set where
-  ⟨_,_⟩ : (x : A) → B x → Σ A B
+record Σ (A : Set) (B : A → Set) : Set where
+  field
+    proj₁ : A
+    proj₂ : B proj₁
 Σ-syntax = Σ
 infix 2 Σ-syntax
 syntax Σ-syntax A (λ x → B) = Σ[ x ∈ A ] B
-∃ : ∀ {A : Set} (B : A → Set) → Set
-∃ {A} B = Σ A B
 
-∃-syntax = ∃
-syntax ∃-syntax (λ x → B) = ∃[ x ] B
+leading→suc : ∀ {b : Bin} → Leading1 b → Σ (ℕ) (λ n → toℕ b ≡ suc n)
+leading→suc {.(⟨⟩ I)} one =
+  record
+  { proj₁ = zero
+  ; proj₂ = refl }
+leading→suc {b O} (lb O) =
+  record
+  { proj₁ = unsuc (2 * toℕ b)
+  ; proj₂ = sym (
+      let n = Σ.proj₁ (leading→suc lb) in
+      let b≡sn = Σ.proj₂ (leading→suc lb) in 
+      begin
+        suc (unsuc (2 * toℕ b))
+      ≡⟨ cong (λ x → suc (unsuc (2 * x))) b≡sn ⟩
+        suc (unsuc (2 * (suc n)))
+      ≡⟨ cong (λ x → suc (unsuc x)) (sym (double (suc n))) ⟩
+        suc (unsuc ((suc n) + (suc n)))
+      ≡⟨⟩
+        suc n + suc n
+      ≡⟨ double (suc n) ⟩
+        2 * (suc n)
+      ≡⟨ cong (2 *_) (sym b≡sn) ⟩
+        2 * toℕ b
+      ∎
+    )
+  }
+leading→suc {b I} (lb I) =
+  record
+  { proj₁ = 2 * toℕ b
+  ; proj₂ = sym (
+      let n = Σ.proj₁ (leading→suc lb) in
+      let b≡sn = Σ.proj₂ (leading→suc lb) in 
+      begin
+        suc (2 * toℕ b)
+      ≡⟨⟩
+        1 + 2 * toℕ b
+      ≡⟨ +-comm 1 (2 * toℕ b) ⟩
+        2 * toℕ b + 1
+      ≡⟨⟩
+        toℕ (b I)
+      ∎
+    )
+  }
 
 
-canonical→ℕ→canonical : ∀ {b : Bin} → Canonical b → toBin (toℕ b) ≡ b
-canonical→ℕ→canonical zero = refl
-canonical→ℕ→canonical (leading one) = refl
-canonical→ℕ→canonical {b O} (leading (cb O))
-  with toℕ (b O)
-... | zero  = {!!}
-... | suc n = {!!}
-canonical→ℕ→canonical {b I} (leading (cb I)) =
+_+´_ : Bin → Bin → Bin
+⟨⟩ +´ b = b
+(a O) +´ ⟨⟩ = a O
+(a O) +´ (b O) = (a +´ b) O
+(a O) +´ (b I) = (a +´ b) I
+(a I) +´ ⟨⟩ = a I
+(a I) +´ (b O) = (a +´ b) I
+(a I) +´ (b I) = (inc (a +´ b)) O
+
++´-comm : ∀ {a b : Bin} → a +´ b ≡ b +´ a
++´-comm {⟨⟩} {⟨⟩} = refl
++´-comm {⟨⟩} {b O} = refl
++´-comm {⟨⟩} {b I} = refl
++´-comm {a O} {⟨⟩} = refl
++´-comm {a O} {b O} =
+  begin
+    (a +´ b) O
+  ≡⟨ cong _O (+´-comm {a} {b}) ⟩
+    ((b +´ a) O)
+  ≡⟨⟩
+    ((b O) +´ (a O))
+  ∎
++´-comm {a O} {b I} =
+  begin
+    (a +´ b) I
+  ≡⟨ cong _I (+´-comm {a} {b}) ⟩
+    ((b +´ a) I)
+  ≡⟨⟩
+    (((b I) +´ (a O)))
+  ∎
++´-comm {a I} {⟨⟩} = refl
++´-comm {a I} {b O} =
+  begin
+    (a +´ b) I
+  ≡⟨ cong _I (+´-comm {a} {b}) ⟩
+    ((b +´ a) I)
+  ≡⟨⟩
+    (((b O) +´ (a I)))
+  ∎
++´-comm {a I} {b I} =
+  begin
+    inc (a +´ b) O
+  ≡⟨ cong (λ x → (inc x) O) (+´-comm {a} {b}) ⟩
+    inc (b +´ a) O
+  ≡⟨⟩
+    (b I) +´ (a I)
+  ∎
+
++´-incₗ : ∀ {a b : Bin} → inc(a +´ b) ≡ inc a +´ b
++´-incₗ {⟨⟩} {⟨⟩} = refl
++´-incₗ {⟨⟩} {b O} = refl
++´-incₗ {⟨⟩} {b I} = refl
++´-incₗ {a O} {⟨⟩} = refl
++´-incₗ {a O} {b O} = refl
++´-incₗ {a O} {b I} = refl
++´-incₗ {a I} {⟨⟩} = refl
++´-incₗ {a I} {b O} =
+  begin
+    inc ( (a I) +´ (b O)) 
+  ≡⟨⟩
+    (inc (a +´ b)) O
+  ≡⟨ cong _O (+´-incₗ {a} {b}) ⟩
+    (inc a +´ b) O
+  ≡⟨⟩
+    (inc a O) +´ (b O)
+  ≡⟨⟩
+    (inc (a I)) +´ (b O)
+  ∎
++´-incₗ {a I} {b I} =
+  begin
+    inc (a +´ b) I
+  ≡⟨ cong _I (+´-incₗ {a} {b}) ⟩
+    ((inc a) +´ b) I
+  ≡⟨⟩
+    (inc a O) +´ (b I)
+  ≡⟨⟩
+    (inc (a I) +´ (b I))
+  ∎
+
++´-incᵣ : ∀ {a b : Bin} → inc( a +´ b) ≡ a +´ inc b
++´-incᵣ {a} {b} =
+  begin
+    inc (a +´ b)
+  ≡⟨ cong inc (+´-comm {a} {b}) ⟩
+    inc (b +´ a)
+  ≡⟨ +´-incₗ {b} {a} ⟩
+    (inc b) +´ a
+  ≡⟨ +´-comm {inc b} {a} ⟩
+    a +´ inc b
+  ∎
+
+toBin-split : ∀ {m n : ℕ} → toBin (m + n) ≡ toBin m +´ toBin n
+toBin-split {zero} {zero} = refl
+toBin-split {zero} {suc n} =
+  begin
+    toBin (0 + suc n)
+  ≡⟨⟩
+    inc (toBin n)
+  ≡⟨ cong (λ x → inc (toBin x)) (sym (+-identityˡ n)) ⟩
+    inc (toBin (0 + n))
+  ≡⟨ cong inc (toBin-split {0} {n}) ⟩
+    inc (toBin 0 +´ toBin n)
+  ≡⟨ +´-incᵣ {toBin 0} {toBin n} ⟩
+    toBin 0 +´ inc (toBin n)
+  ≡⟨⟩
+    toBin 0 +´ toBin (suc n)
+  ∎
+toBin-split {suc m} {zero} =
+  begin
+    inc (toBin (m + 0))
+  ≡⟨ cong inc (toBin-split {m} {0}) ⟩
+    inc ((toBin m) +´ (toBin 0))
+  ≡⟨ +´-incₗ {toBin m} {toBin 0} ⟩
+    (inc (toBin m)) +´ (toBin 0)
+  ≡⟨⟩
+    (toBin (suc m) +´ (toBin 0))
+  ∎
+toBin-split {suc m} {suc n} =
+  begin
+    (inc (toBin (m + suc n)))
+  ≡⟨ cong (λ x → inc (toBin x)) (+-comm m (suc n)) ⟩
+    inc (inc (toBin (n + m)))
+  ≡⟨ cong (λ x → inc (inc x)) (toBin-split {n} {m}) ⟩
+    inc (inc ((toBin n) +´ (toBin m)))
+  ≡⟨ cong inc (+´-incₗ {toBin n} {toBin m}) ⟩
+    inc (inc (toBin n) +´ (toBin m))
+  ≡⟨ +´-incᵣ {inc (toBin n)} {toBin m} ⟩
+    (inc (toBin n)) +´ (inc (toBin m))
+  ≡⟨⟩
+    (toBin (suc n)) +´ (toBin (suc m))
+  ≡⟨ +´-comm {toBin (suc n)} {toBin (suc m)} ⟩
+    (toBin (suc m)) +´ (toBin (suc n))
+  ∎
+
+double-Bin : ∀ {b : Bin} → Leading1 b → b +´ b ≡ b O
+double-Bin {(⟨⟩ I)} one = refl
+double-Bin {(b O)} (lb O) =
+  begin
+    (b +´ b) O
+  ≡⟨ cong _O (double-Bin {b} lb) ⟩
+    ((b O) O)
+  ∎
+double-Bin {(b I)} (lb I) =
+  begin
+    (inc (b +´ b) O)
+  ≡⟨ cong (λ x → inc x O) (double-Bin {b} lb) ⟩
+    ((b I) O)
+  ∎
+
+toBin∘toℕ : ∀ {b : Bin} → Canonical b → toBin (toℕ b) ≡ b
+toBin∘toℕ zero = refl
+toBin∘toℕ (leading one) = refl
+toBin∘toℕ {b O} (leading (cb O)) =
+  let n = Σ.proj₁ (leading→suc cb ) in
+  let b≡sn = Σ.proj₂ (leading→suc cb ) in
+  begin
+    toBin (toℕ (b O))
+  ≡⟨⟩
+    toBin (2 * toℕ b)
+  ≡⟨ cong (λ x → toBin (toℕ b + x)) (+-identityʳ (toℕ b))⟩
+    toBin (toℕ b + toℕ b)
+  ≡⟨ toBin-split {toℕ b} {toℕ b} ⟩
+    (toBin (toℕ b)) +´ (toBin (toℕ b))
+  ≡⟨ cong (λ x → x +´ x) (toBin∘toℕ {b} (leading cb)) ⟩
+    (b +´ b)
+  ≡⟨ double-Bin {b} cb ⟩
+    (b O)
+  ∎
+toBin∘toℕ {b I} (leading (cb I)) =
   begin
     toBin (toℕ (b I))
   ≡⟨⟩
@@ -258,9 +439,14 @@ canonical→ℕ→canonical {b I} (leading (cb I)) =
     toBin (suc (toℕ (b O)))
   ≡⟨⟩
     inc (toBin (toℕ (b O)))
-  ≡⟨ cong inc (canonical→ℕ→canonical {b O} (leading (cb O))) ⟩
-    inc (b O)
   ≡⟨⟩
-    b I
+    inc (toBin (toℕ b + (toℕ b + zero)))
+  ≡⟨ cong (λ x → inc (toBin (toℕ b + x))) (+-identityʳ (toℕ b)) ⟩
+    inc (toBin (toℕ b + toℕ b))
+  ≡⟨ cong inc (toBin-split {toℕ b} {toℕ b}) ⟩
+    inc ((toBin (toℕ b)) +´ (toBin (toℕ b)))
+  ≡⟨ cong (λ x → inc (x +´ x)) (toBin∘toℕ {b} (leading cb)) ⟩
+    (inc (b +´ b))
+  ≡⟨ cong inc (double-Bin {b} cb) ⟩
+    (b I)
   ∎
-  
