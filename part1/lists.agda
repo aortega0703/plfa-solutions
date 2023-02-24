@@ -190,3 +190,19 @@ map-distribute f (x ∷ xs) ys =
   ≡⟨ cong (λ T → f x ∷ T) (map-distribute f xs ys) ⟩
     (f x ∷ map f xs ++ map f ys)
   ∎
+
+data Tree (A B : Set) : Set where
+  leaf : A → Tree A B
+  node : Tree A B → B → Tree A B → Tree A B
+
+map-Tree : ∀ {A B C D : Set} → (A → C) → (B → D) → Tree A B → Tree C D
+map-Tree f g (leaf a)             = leaf (f a)
+map-Tree f g (node treeˡ b treeʳ) =
+  node (map-Tree f g treeˡ) (g b) (map-Tree f g treeʳ)
+
+foldr : ∀ {A B : Set} → (A → B → B) → B → List A → B
+foldr _⊗_ e []        =  e
+foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
+
+product : ∀ (xs : List ℕ) → ℕ
+product xs = foldr _*_ 1 xs
