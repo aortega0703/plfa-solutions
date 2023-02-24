@@ -180,3 +180,13 @@ lemma f g (x ∷ xs) =
 map-compose : ∀ {A B C : Set} → (f : A → B) → (g : B → C)
   → map (g ∘ f) ≡ map g ∘ map f
 map-compose f g = extensionality (lemma f g)
+
+map-distribute : ∀ {A B : Set} (f : A → B) (xs ys : List A)
+  → map f (xs ++ ys) ≡ map f xs ++ map f ys
+map-distribute f [] ys = refl
+map-distribute f (x ∷ xs) ys =
+  begin
+    (f x ∷ map f (xs ++ ys))
+  ≡⟨ cong (λ T → f x ∷ T) (map-distribute f xs ys) ⟩
+    (f x ∷ map f xs ++ map f ys)
+  ∎
