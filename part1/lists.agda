@@ -206,3 +206,13 @@ foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
 
 product : ∀ (xs : List ℕ) → ℕ
 product xs = foldr _*_ 1 xs
+
+foldr-++ : ∀ {A B : Set} (_⊗_ : A → B → B) (e : B) (xs ys : List A)
+  → foldr _⊗_ e (xs ++ ys) ≡ foldr _⊗_ (foldr _⊗_ e ys) xs
+foldr-++ _⊗_ e [] ys = refl
+foldr-++ _⊗_ e (x ∷ xs) ys =
+  begin
+    (x ⊗ foldr _⊗_ e (xs ++ ys))
+  ≡⟨ cong (x ⊗_) (foldr-++ _⊗_ e xs ys) ⟩
+    (x ⊗ foldr _⊗_ (foldr _⊗_ e ys) xs)
+  ∎
