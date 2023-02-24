@@ -216,3 +216,23 @@ foldr-++ _⊗_ e (x ∷ xs) ys =
   ≡⟨ cong (x ⊗_) (foldr-++ _⊗_ e xs ys) ⟩
     (x ⊗ foldr _⊗_ (foldr _⊗_ e ys) xs)
   ∎
+
+foldr-∷ : ∀ {A : Set} (xs : List A)
+  → foldr _∷_ [] xs ≡ xs
+foldr-∷ [] = refl
+foldr-∷ (x ∷ xs) =
+  begin
+    (x ∷ foldr _∷_ [] xs)
+  ≡⟨ cong ( x ∷_ ) (foldr-∷ xs) ⟩
+    (x ∷ xs)
+  ∎
+
+foldr-∷₁ : ∀ {A : Set} (xs ys : List A)
+  → xs ++ ys ≡ foldr _∷_ ys xs
+foldr-∷₁ [] ys = refl
+foldr-∷₁ (x ∷ xs) ys = sym (
+  begin
+  (x ∷ foldr _∷_ ys xs)
+  ≡⟨ cong (x ∷_) (sym (foldr-∷₁ xs ys)) ⟩
+    x ∷ xs ++ ys
+  ∎)
