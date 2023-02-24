@@ -236,3 +236,17 @@ foldr-∷₁ (x ∷ xs) ys = sym (
   ≡⟨ cong (x ∷_) (sym (foldr-∷₁ xs ys)) ⟩
     x ∷ xs ++ ys
   ∎)
+
+map-is-foldr´ : ∀ {A B : Set} (f : A → B) (ys : List A)
+  → map f ys ≡ foldr (λ x xs → f x ∷ xs) [] ys
+map-is-foldr´ f [] = refl
+map-is-foldr´ f (x ∷ ys) =
+  begin
+    (f x ∷ map f ys)
+  ≡⟨ cong (f x ∷_) (map-is-foldr´ f ys) ⟩
+    (f x ∷ foldr (λ z → _∷_ (f z)) [] ys)
+  ∎
+
+map-is-foldr : ∀ {A B : Set} (f : A → B) 
+  → map f ≡ foldr (λ x xs → f x ∷ xs) []
+map-is-foldr f = extensionality (λ xs → map-is-foldr´ f xs)
