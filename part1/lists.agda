@@ -95,3 +95,88 @@ reverse-++-distrib (x ∷ xs) ys =
   ≡⟨ ++-assoc (reverse ys) (reverse xs) [ x ] ⟩
     (reverse ys ++ reverse xs ++ [ x ])
   ∎
+
+reverse-involute : ∀ {A : Set} (xs : List A)
+  → reverse (reverse xs) ≡ xs
+reverse-involute [] = refl
+reverse-involute (x ∷ xs) =
+  begin
+    (reverse (reverse xs ++ [ x ]))
+  ≡⟨ reverse-++-distrib (reverse xs) [ x ] ⟩
+    reverse [ x ] ++ reverse (reverse xs)
+  ≡⟨ cong (λ t → reverse [ x ] ++ t) (reverse-involute xs) ⟩
+    (x ∷ xs)
+  ∎
+
+shunt : ∀ {A : Set} → List A → List A → List A
+shunt []       ys  =  ys
+shunt (x ∷ xs) ys  =  shunt xs (x ∷ ys)
+
+shunt-reverse : ∀ {A : Set} (xs ys : List A)
+  → shunt xs ys ≡ reverse xs ++ ys
+shunt-reverse [] ys =
+  begin
+    shunt [] ys
+  ≡⟨⟩
+    ys
+  ≡⟨⟩
+    reverse [] ++ ys
+  ∎
+shunt-reverse (x ∷ xs) ys =
+  begin
+    shunt (x ∷ xs) ys
+  ≡⟨⟩
+    shunt xs (x ∷ ys)
+  ≡⟨ shunt-reverse xs (x ∷ ys) ⟩
+    reverse xs ++ (x ∷ ys)
+  ≡⟨⟩
+    reverse xs ++ ([ x ] ++ ys)
+  ≡⟨ sym (++-assoc (reverse xs) [ x ] ys) ⟩
+    (reverse xs ++ [ x ]) ++ ys
+  ≡⟨⟩
+    reverse (x ∷ xs) ++ ys
+  ∎
+
+reverse′ : ∀ {A : Set} → List A → List A
+reverse′ xs = shunt xs []
+
+reverses : ∀ {A : Set} (xs : List A)
+  → reverse′ xs ≡ reverse xs
+reverses xs =
+  begin
+    reverse′ xs
+  ≡⟨⟩
+    shunt xs []
+  ≡⟨ shunt-reverse xs [] ⟩
+    reverse xs ++ []
+  ≡⟨ ++-identityʳ (reverse xs) ⟩
+    reverse xs
+  ∎
+
+postulate
+  extensionality : ∀ {A B : Set} {f g : A → B}
+    → (∀ (x : A) → f x ≡ g x)
+      -----------------------
+    → f ≡ g
+
+map : ∀ {A B : Set} → (A → B) → List A → List B
+map f []        =  []
+map f (x ∷ xs)  =  f x ∷ map f xs
+
+lemma : ∀ {A B C : Set} → (f : A → B) → (g : B → C) → (x : List A)
+  → map (g ∘ f) x ≡ (map g ∘ map f) x
+lemma f g []       = refl
+lemma f g (x ∷ xs) =
+  begin
+    map (g ∘ f) (x ∷ xs)
+  ≡⟨⟩
+    (g ∘ f) x ∷ map (g ∘ f) xs
+  ≡⟨ cong ((g ∘ f) x ∷_) (lemma f g xs) ⟩
+    (g ∘ f) x ∷ (map g ∘ map f) xs
+  ≡⟨⟩
+    (map g ∘ map f) (x ∷ xs)
+  ∎
+
+map-compose : ∀ {A B C : Set} → (f : A → B) → (g : B → C)
+  → map (g ∘ f) ≡ map g ∘ map f
+map-compose f g = extensionality (lemma f g)
