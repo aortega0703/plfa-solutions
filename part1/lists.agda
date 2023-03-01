@@ -6,7 +6,7 @@ open Eq.≡-Reasoning
 open import Data.Bool using (Bool; true; false; T; _∧_; _∨_; not)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_; _∸_; _≤_; s≤s; z≤n)
 open import Data.Nat.Properties using
-  (+-assoc; +-identityˡ; +-identityʳ; *-assoc; *-identityˡ; *-identityʳ; *-distribʳ-+)
+  (+-assoc; +-identityˡ; +-identityʳ; *-assoc; *-identityˡ; *-identityʳ; *-distribʳ-+; *-distribˡ-∸; +-∸-assoc; m+n∸m≡n; m≤m*n; *-suc; +-∸-comm)
 open import Relation.Nullary using (¬_; Dec; yes; no)
 open import Data.Product using (_×_; ∃; ∃-syntax) renaming (_,_ to ⟨_,_⟩)
 open import Function using (_∘_)
@@ -205,8 +205,9 @@ foldr _⊗_ e []        =  e
 foldr _⊗_ e (x ∷ xs)  =  x ⊗ foldr _⊗_ e xs
 
 product : ∀ (xs : List ℕ) → ℕ
-product xs = foldr _*_ 1 xs
-
+product = foldr _*_ 1
+sum : List ℕ → ℕ
+sum = foldr _+_ 0
 foldr-++ : ∀ {A B : Set} (_⊗_ : A → B → B) (e : B) (xs ys : List A)
   → foldr _⊗_ e (xs ++ ys) ≡ foldr _⊗_ (foldr _⊗_ e ys) xs
 foldr-++ _⊗_ e [] ys = refl
@@ -250,3 +251,82 @@ map-is-foldr´ f (x ∷ ys) =
 map-is-foldr : ∀ {A B : Set} (f : A → B) 
   → map f ≡ foldr (λ x xs → f x ∷ xs) []
 map-is-foldr f = extensionality (λ xs → map-is-foldr´ f xs)
+
+fold-Tree : ∀ {A B C : Set} → (A → C) → (C → B → C → C) → Tree A B → C
+fold-Tree f _ (leaf a)             = f a
+fold-Tree f g (node treeˡ b treeʳ) =
+  g (fold-Tree f g treeˡ) b (fold-Tree f g treeʳ)
+
+downFrom : ℕ → List ℕ
+downFrom zero    = []
+downFrom (suc n) = n ∷ downFrom n
+
+_ : downFrom 3 ≡ [ 2 , 1 , 0 ]
+_ = refl
+
+n≤n*n : ∀ (n : ℕ) → n ≤ n * n
+n≤n*n zero    = z≤n
+n≤n*n (suc n) = m≤m*n (suc n) (suc n)
+
+n≤n*2 : ∀ (n : ℕ) → n ≤ n * 2
+n≤n*2 n = m≤m*n n (2)
+
+n*2∸n≡n : ∀ (n : ℕ) → n * 2 ∸ n ≡ n
+n*2∸n≡n n =
+  begin
+    n * 2 ∸ n
+  ≡⟨ cong (_∸ n) (*-suc n 1) ⟩
+    n + n * 1 ∸ n
+  ≡⟨ m+n∸m≡n n (n * 1) ⟩
+    n * 1
+  ≡⟨ *-identityʳ n ⟩
+    n
+  ∎
+
+m*[n∸1]≡m*n∸m : ∀ (m n : ℕ) → m * (n ∸ 1) ≡ m * n ∸ m
+m*[n∸1]≡m*n∸m m n =
+  begin
+    m * (n ∸ 1)
+  ≡⟨ *-distribˡ-∸ m n 1 ⟩
+    m * n ∸ m * 1
+  ≡⟨ cong (m * n ∸_) (*-identityʳ m) ⟩
+    m * n ∸ m
+  ∎
+
+sum-downFrom : ∀ (n : ℕ) → sum (downFrom n) * 2 ≡ n * (n ∸ 1)
+sum-downFrom zero =
+  begin
+    sum (downFrom zero) * 2
+  ≡⟨⟩
+    sum [] * 2
+  ≡⟨⟩
+    zero
+  ∎
+sum-downFrom (suc n) =
+  begin
+    sum (downFrom (suc n)) * 2
+  ≡⟨⟩
+    sum (n ∷ downFrom n) * 2
+  ≡⟨⟩
+    (n + sum (downFrom n)) * 2
+  ≡⟨ *-distribʳ-+ 2 n (sum (downFrom n)) ⟩
+    (n * 2) + (sum (downFrom n)) * 2
+  ≡⟨ cong (n * 2 +_) (sum-downFrom n) ⟩
+    (n * 2) + (n * (n ∸ 1))
+  ≡⟨ cong (n * 2 +_) (m*[n∸1]≡m*n∸m n n) ⟩
+    (n * 2) + (n * n ∸ n)
+  ≡⟨ sym (+-∸-assoc (n * 2) (n≤n*n n)) ⟩
+    (n * 2) + n * n ∸ n
+  ≡⟨ +-∸-comm (n * n) (n≤n*2 n) ⟩
+    (n * 2) ∸ n + n * n
+  ≡⟨ cong (_+ n * n) (n*2∸n≡n n) ⟩
+    n + n * n
+  ∎
+
+record IsMonoid {A : Set} (_⊗_ : A → A → A) (e : A) : Set where
+  field
+    assoc : ∀ (x y z : A) → (x ⊗ y) ⊗ z ≡ x ⊗ (y ⊗ z)
+    identityˡ : ∀ (x : A) → e ⊗ x ≡ x
+    identityʳ : ∀ (x : A) → x ⊗ e ≡ x
+
+open IsMonoid
