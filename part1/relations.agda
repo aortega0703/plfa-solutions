@@ -415,8 +415,6 @@ toBin∘toℕ : ∀ {b : Bin} → Canonical b → toBin (toℕ b) ≡ b
 toBin∘toℕ zero = refl
 toBin∘toℕ (leading one) = refl
 toBin∘toℕ {b O} (leading (cb O)) =
-  let n = Σ.proj₁ (leading→suc cb ) in
-  let b≡sn = Σ.proj₂ (leading→suc cb ) in
   begin
     toBin (toℕ (b O))
   ≡⟨⟩
