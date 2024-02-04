@@ -1,1 +1,1 @@
-# plfa-solutions
+# Programming Language Foundations in Agda: solutions
